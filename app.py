@@ -1,45 +1,30 @@
-from fastapi import FastAPI
-from langchain.prompts.chat import ChatPromptTemplate
-#from langchain.chat models import ChatOpenAI
-from langserve import add_routes
-import uvicorn
-import os
-from langchain_community.llms import ollama
-from dotenv import load_dotenv
+import requests
 
+class OllamaChatbot:
+    def __init__(self, model='llama2:latest ', api_url='http://localhost:11434/api/chat'):
+        self.model = model
+        self.api_url = api_url
+        self.messages = []
 
-load_dotenv()
+    def ask(self, user_input):
+        self.messages.append({"role": "user", "content": user_input})
 
-os.environ["LANGSERVE_API_KEY"] = os.getenv("LANGSERVE_API_KEY")  # we have to give api key here 
+        payload = {
+            "model": self.model,
+            "messages": self.messages,
+            "stream": False
+        }
 
+        try:
+            response = requests.post(self.api_url, json=payload)
+            response.raise_for_status()
+            reply = response.json()['message']['content']
+            self.messages.append({"role": "assistant", "content": reply})
+            return reply
+        except Exception as e:
+            return f"Error: {str(e)}"
 
-app = FastAPI(
-    title="Langchain server",
-    version="0.1.0",
-    description="A normal langchain server",
-    
-)
+    def get_history(self):
+        return self.messages
 
-model = ChatOpenAI
-
-add_routes(
-    app(),
-    model(),
-    path="/ollama2"
-)
-
-llm = Ollama(model="llama2")
-
-prompt = ChatPromptTemplate.from_template("You are a helpful assistant. {input}")
-
-llm(prompt.format(input="What is Langchain?"))
-
-add_routes(
-    app,
-    prompt|llm,
-    path="/ollama2"
-)
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="localhost", port=8000)
 
