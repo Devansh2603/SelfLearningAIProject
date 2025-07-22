@@ -1,30 +1,30 @@
+import streamlit as st
 import requests
 
-class OllamaChatbot:
-    def __init__(self, model='llama2:latest ', api_url='http://localhost:11434/api/chat'):
-        self.model = model
-        self.api_url = api_url
-        self.messages = []
+# Set page config
+st.set_page_config(page_title="Ask Me", page_icon="🤖", layout="centered")
 
-    def ask(self, user_input):
-        self.messages.append({"role": "user", "content": user_input})
+# Title
+st.title("Ask Me")
 
-        payload = {
-            "model": self.model,
-            "messages": self.messages,
-            "stream": False
-        }
+# User input
+user_query = st.text_input("Enter your question:", placeholder="e.g., What services were done yesterday?")
 
-        try:
-            response = requests.post(self.api_url, json=payload)
-            response.raise_for_status()
-            reply = response.json()['message']['content']
-            self.messages.append({"role": "assistant", "content": reply})
-            return reply
-        except Exception as e:
-            return f"Error: {str(e)}"
-
-    def get_history(self):
-        return self.messages
-
+# Button
+if st.button("Let's Go"):
+    if not user_query.strip():
+        st.warning("Please enter a question.")
+    else:
+        with st.spinner("Processing..."):
+            try:
+                # Replace with your FastAPI endpoint
+                response = requests.post("http://localhost:8000/query", json={"query": user_query})
+                if response.status_code == 200:
+                    result = response.json()
+                    st.success("Response:")
+                    st.write(result.get("response", "No response found."))
+                else:
+                    st.error(f"Error: {response.status_code} - {response.text}")
+            except Exception as e:
+                st.error(f"Failed to connect to backend: {e}")
 
